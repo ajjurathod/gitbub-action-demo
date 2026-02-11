@@ -51,10 +51,27 @@ jobs:
      - name: Docker build image
        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/github-demo:dev .
 
+ trivy-scan:
+   name: trivy scan 
+   runs-on: self-hosted
+   needs: docker-build
+
+   steps:
+    - name: install trivy
+      run: |
+        sudo apt-get update
+        sudo apt-get install wget -y
+        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.48.0_Linux-64bit.deb
+        sudo dpkg -i trivy_0.48.0_Linux-64bit.deb 
+
+    - name: scan image
+      run: trivy image ${{ secrets.DOCKER_USERNAME }}/github-demo:dev   
+
+
  docker-expose:
     name: docker expose
     runs-on: self-hosted
-    needs: docker-build
+    needs: trivy-scan
 
 
     steps:
