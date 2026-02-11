@@ -56,14 +56,7 @@ jobs:
    runs-on: self-hosted
    needs: docker-build
 
-   steps:
-    - name: install trivy
-      run: |
-        sudo apt-get update
-        sudo apt-get install wget -y
-        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.48.0_Linux-64bit.deb
-        sudo dpkg -i trivy_0.48.0_Linux-64bit.deb 
-
+   steps: 
     - name: scan image
       run: trivy image ${{ secrets.DOCKER_USERNAME }}/github-demo:dev   
 
