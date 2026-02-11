@@ -1,0 +1,74 @@
+name: cicd -pipeline-dev
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+ maven-build:
+   name: maven-build
+   runs-on: self-hosted
+
+
+   steps:
+     - name: code checkout
+       uses: actions/checkout@v4
+
+
+     - name: Setup Java
+       uses: actions/setup-java@v4
+       with:
+          distribution: temurin
+          java-version: 17 
+     
+     - name: mvn build
+       run: mvn clean package 
+
+
+     - name: Upload JAR artifact
+       uses: actions/upload-artifact@v4
+       with:
+          name: app-jar
+          path: target/demo-app-1.0.jar 
+
+ docker-build:
+    name: build docker
+    runs-on: self-hosted
+    needs: maven-build
+
+    steps:
+     - name: code checkout
+       uses: actions/checkout@v4
+
+
+     - name: Download jar artifact
+       uses: actions/download-artifact@v4
+       with:
+        name: app-jar
+        path: target
+
+
+     - name: Docker build image
+       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/github-demo:dev .
+ trivy-scan:
+   name: trivy scan 
+   runs-on: self-hosted
+   needs: docker-build
+
+   steps:
+    - name: scan image
+      run: trivy image ${{ secrets.DOCKER_USERNAME }}/github-demo:dev   
+
+
+ docker-push:
+    name: docker push
+    runs-on: self-hosted
+    needs: trivy-scan
+
+
+    steps:
+     - name: docker login
+       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+     - name: docker push
+       run: docker push  ${{ secrets.DOCKER_USERNAME }}/github-demo:dev             
