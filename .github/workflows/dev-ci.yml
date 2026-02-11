@@ -1,0 +1,62 @@
+name: cicd -pipeline-dev
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+ maven-build:
+   name: maven-build
+   runs-on: self-hosted
+
+
+   steps:
+     - name: code checkout
+       uses: actions/checkout@v4
+
+
+     - name: Setup Java
+       uses: actions/setup-java@v4
+       with:
+          distribution: temurin
+          java-version: 17 
+     
+     - name: mvn build
+       run: mvn clean package 
+
+
+     - name: Upload JAR artifact
+       uses: actions/upload-artifact@v4
+       with:
+          name: app-jar
+          path: target/demo-app-1.0.jar 
+
+ docker-build:
+    name: build docker
+    runs-on: self-hosted
+    needs: maven-build
+
+    steps:
+     - name: code checkout
+       uses: actions/checkout@v4
+
+
+     - name: Download jar artifact
+       uses: actions/download-artifact@v4
+       with:
+        name: app-jar
+        path: target
+
+
+     - name: Docker build image
+       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/github-demo:dev .
+
+ docker-expose:
+    name: docker expose
+    runs-on: self-hosted
+    needs: docker-build
+
+
+    steps:
+     - name: docker expose
+       run: docker run --name github-cont -td -p  8080:8080  ${{ secrets.DOCKER_USERNAME }}/github-demo:dev               
